@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.rgdgr8.rggallery.databinding.FragmentGalleryBinding;
 import com.rgdgr8.rggallery.databinding.ListItemBinding;
+import com.squareup.picasso.Picasso;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -23,9 +24,9 @@ import java.util.List;
 
 public class GalleryFragment extends Fragment {
     private static final String TAG = "GalleryFrag";
-    private FragmentGalleryBinding mGalleryBinding;
     private ImageFetchingTask task;
     private ImageAdapter adapter;
+    private ThumbNailDownloader<GalleryItem> mThumbNailDownloader;
 
     @Override
     public void onCreate(@Nullable @org.jetbrains.annotations.Nullable Bundle savedInstanceState) {
@@ -33,14 +34,16 @@ public class GalleryFragment extends Fragment {
         setRetainInstance(true);
         task = new ImageFetchingTask();
         task.execute();
+        /*mThumbNailDownloader = new ThumbNailDownloader<>();
+        mThumbNailDownloader.start();
+        mThumbNailDownloader.getLooper();*/
     }
 
-    public void setUpAdapter(){
-        if(isAdded()){
-            if(adapter==null) {
+    public void setUpAdapter() {
+        if (isAdded()) {
+            if (adapter == null) {
                 adapter = new ImageAdapter();
-                mGalleryBinding.rv.setAdapter(adapter);
-            }else {
+            } else {
                 adapter.notifyDataSetChanged();
             }
         }
@@ -50,25 +53,26 @@ public class GalleryFragment extends Fragment {
     @org.jetbrains.annotations.Nullable
     @Override
     public View onCreateView(@NonNull @org.jetbrains.annotations.NotNull LayoutInflater inflater, @Nullable @org.jetbrains.annotations.Nullable ViewGroup container, @Nullable @org.jetbrains.annotations.Nullable Bundle savedInstanceState) {
-        mGalleryBinding = DataBindingUtil.inflate(inflater,R.layout.fragment_gallery,container,false);
-        mGalleryBinding.rv.setLayoutManager(new GridLayoutManager(getActivity(),3));
+        com.rgdgr8.rggallery.databinding.FragmentGalleryBinding mGalleryBinding = DataBindingUtil.inflate(inflater, R.layout.fragment_gallery, container, false);
+        mGalleryBinding.rv.setLayoutManager(new GridLayoutManager(getActivity(), 2));
         mGalleryBinding.rv.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(@NonNull @NotNull RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
 
-                if(!recyclerView.canScrollVertically(1)){
-                    if(task.getStatus()== AsyncTask.Status.RUNNING) return;
+                if (!recyclerView.canScrollVertically(1)) {
+                    if (task.getStatus() == AsyncTask.Status.RUNNING) return;
                     task = new ImageFetchingTask();
                     task.execute();
                 }
             }
         });
-        //adapter set in onPostExecute()
+        setUpAdapter();
+        mGalleryBinding.rv.setAdapter(adapter);
         return mGalleryBinding.getRoot();
     }
 
-    private class ImageFetchingTask extends AsyncTask<Void,Void,Void>{
+    private class ImageFetchingTask extends AsyncTask<Void, Void, Void> {
         @Override
         protected Void doInBackground(Void... voids) {
             try {
@@ -81,9 +85,8 @@ public class GalleryFragment extends Fragment {
 
         @Override
         protected void onPostExecute(Void unused) {
-            if(ImageFetcher.getItemList()==null){
+            if (ImageFetcher.getItemList() == null) {
                 Log.e(TAG, "onPostExecute: No items fetched");
-                return;
             }
             setUpAdapter();
         }
@@ -91,21 +94,31 @@ public class GalleryFragment extends Fragment {
 
     private class ImageHolder extends RecyclerView.ViewHolder {
         private ListItemBinding mLib;
+
         public ImageHolder(ListItemBinding lib) {
             super(lib.getRoot());
             mLib = lib;
-            mLib.setViewModel(new GalleryItemViewModel());
+            mLib.setViewModel(new GalleryItemViewModel(getActivity()));
         }
 
-        public void bind(GalleryItem galleryItem){
+        public void bind(GalleryItem galleryItem) {
+            galleryItem.setViewModel(mLib.getViewModel());
             mLib.getViewModel().setGalleryItem(galleryItem);
             mLib.executePendingBindings();
         }
+
+        public void bindWithPicasso(GalleryItem galleryItem) {
+            Picasso.get()
+                    .load(galleryItem.getUrl())
+                    .placeholder(R.drawable.ic_launcher_foreground)
+                    .into(mLib.galleryImage);
+        }
     }
 
-    private class ImageAdapter extends RecyclerView.Adapter<ImageHolder>{
+    private class ImageAdapter extends RecyclerView.Adapter<ImageHolder> {
         private List<GalleryItem> mGalleryItems;
-        public ImageAdapter(){
+
+        public ImageAdapter() {
             mGalleryItems = ImageFetcher.getItemList();
         }
 
@@ -113,13 +126,16 @@ public class GalleryFragment extends Fragment {
         @NotNull
         @Override
         public ImageHolder onCreateViewHolder(@NonNull @NotNull ViewGroup parent, int viewType) {
-            ListItemBinding lib = DataBindingUtil.inflate(LayoutInflater.from(getActivity()),R.layout.list_item,parent,false);
+            ListItemBinding lib = DataBindingUtil.inflate(LayoutInflater.from(getActivity()), R.layout.list_item, parent, false);
             return new ImageHolder(lib);
         }
 
         @Override
         public void onBindViewHolder(@NonNull @NotNull GalleryFragment.ImageHolder holder, int position) {
-            holder.bind(mGalleryItems.get(position));
+            Log.d(TAG, "onBindViewHolder: " + position);
+            //holder.bind(mGalleryItems.get(position));
+            //mThumbNailDownloader.queueMessage(mGalleryItems.get(position));
+            holder.bindWithPicasso(mGalleryItems.get(position));
         }
 
         @Override

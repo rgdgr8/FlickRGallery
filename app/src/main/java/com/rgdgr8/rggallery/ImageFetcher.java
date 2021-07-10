@@ -21,7 +21,7 @@ public class ImageFetcher {
     public static int PAGE_NO = 1;
     private static List<GalleryItem> mItems = new ArrayList<>();
 
-    private static byte[] getUrlBytes(String urlString) throws IOException {
+    public static byte[] getUrlBytes(String urlString) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         try {

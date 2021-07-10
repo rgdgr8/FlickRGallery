@@ -2,23 +2,20 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android">
     <data>
         <variable
+            name="context"
+            type="android.content.Context" />
+        <variable
             name="viewModel"
             type="com.rgdgr8.rggallery.GalleryItemViewModel" />
     </data>
 
-    <!--<ImageView
-        android:id="@+id/gallery_image"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src=""
-        android:contentDescription="@{viewModel.title}">
-    </ImageView>-->
-
-    <Button
+    <ImageView
         android:id="@+id/gallery_image"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@{viewModel.title}">
-    </Button>
+        android:scaleType="centerCrop">
+        <!--android:src="@{viewModel.getImage()}"-->
+        <!--android:contentDescription="@{viewModel.title}"-->
+    </ImageView>
 
 </layout>
