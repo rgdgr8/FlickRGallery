@@ -1,7 +1,9 @@
 package com.rgdgr8.rggallery;
 
+import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,9 +36,10 @@ public class GalleryFragment extends Fragment {
         setRetainInstance(true);
         task = new ImageFetchingTask();
         task.execute();
-        /*mThumbNailDownloader = new ThumbNailDownloader<>();
+        Handler handler = new Handler(getActivity().getMainLooper());
+        mThumbNailDownloader = new ThumbNailDownloader<>(handler);
         mThumbNailDownloader.start();
-        mThumbNailDownloader.getLooper();*/
+        mThumbNailDownloader.getLooper();
     }
 
     public void setUpAdapter() {
@@ -59,8 +62,17 @@ public class GalleryFragment extends Fragment {
             @Override
             public void onScrollStateChanged(@NonNull @NotNull RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
-
-                if (!recyclerView.canScrollVertically(1)) {
+                if (newState==RecyclerView.SCROLL_STATE_IDLE){
+                    Log.d(TAG, "onScrollStateChanged: Idle");
+                    ThumbNailDownloader.PRE_DOWNLOAD = true;
+                    mThumbNailDownloader.queueMessage();
+                }
+                else if (newState==RecyclerView.SCROLL_STATE_DRAGGING){
+                    Log.d(TAG, "onScrollStateChanged: Dragging");
+                    ThumbNailDownloader.PRE_DOWNLOAD = false;
+                }
+                else if (!recyclerView.canScrollVertically(1)) {
+                    Log.d(TAG, "onScrollStateChanged: ");
                     if (task.getStatus() == AsyncTask.Status.RUNNING) return;
                     task = new ImageFetchingTask();
                     task.execute();
@@ -92,8 +104,12 @@ public class GalleryFragment extends Fragment {
         }
     }
 
-    private class ImageHolder extends RecyclerView.ViewHolder {
+    public class ImageHolder extends RecyclerView.ViewHolder {
         private ListItemBinding mLib;
+
+        public ListItemBinding getBinding() {
+            return mLib;
+        }
 
         public ImageHolder(ListItemBinding lib) {
             super(lib.getRoot());
@@ -102,7 +118,6 @@ public class GalleryFragment extends Fragment {
         }
 
         public void bind(GalleryItem galleryItem) {
-            galleryItem.setViewModel(mLib.getViewModel());
             mLib.getViewModel().setGalleryItem(galleryItem);
             mLib.executePendingBindings();
         }
@@ -133,14 +148,26 @@ public class GalleryFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull @NotNull GalleryFragment.ImageHolder holder, int position) {
             Log.d(TAG, "onBindViewHolder: " + position);
-            //holder.bind(mGalleryItems.get(position));
-            //mThumbNailDownloader.queueMessage(mGalleryItems.get(position));
-            holder.bindWithPicasso(mGalleryItems.get(position));
+            holder.bind(mGalleryItems.get(position));
+            mThumbNailDownloader.queueMessage(position,holder);
+            //holder.bindWithPicasso(mGalleryItems.get(position));
         }
 
         @Override
         public int getItemCount() {
             return mGalleryItems.size();
         }
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        mThumbNailDownloader.clearQueue();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mThumbNailDownloader.quit();
     }
 }

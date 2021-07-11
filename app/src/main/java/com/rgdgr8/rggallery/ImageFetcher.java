@@ -66,6 +66,7 @@ public class ImageFetcher {
     }
 
     public static void fetchItems() throws Exception{
+        Log.d(TAG, "fetchItems: before "+mItems.size());
         String urlString = Uri.parse(ENDPOINT_URL)
                 .buildUpon()
                 .appendQueryParameter("method","flickr.photos.getRecent")
@@ -82,6 +83,7 @@ public class ImageFetcher {
 
         JSONObject jsonObject = new JSONObject(data);
         parseItem(jsonObject);
+        Log.d(TAG, "parseItem: after "+mItems.size());
     }
 
     public static List<GalleryItem> getItemList(){return mItems;}

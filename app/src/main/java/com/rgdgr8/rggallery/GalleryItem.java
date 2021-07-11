@@ -8,7 +8,7 @@ public class GalleryItem {
     private final String mCaption;
     private final String mId;
     private final String mUrl;
-    private GalleryItemViewModel mGVM;
+    private Bitmap mBitmap;
 
     public GalleryItem(String caption, String id, String url){
         mCaption = caption;
@@ -16,12 +16,12 @@ public class GalleryItem {
         mUrl = url;
     }
 
-    public void setViewModel(GalleryItemViewModel GVM) {
-        this.mGVM = GVM;
+    public Bitmap getBitmap() {
+        return mBitmap;
     }
 
-    public GalleryItemViewModel getViewModel() {
-        return mGVM;
+    public void setBitmap(Bitmap bitmap) {
+        this.mBitmap = bitmap;
     }
 
     public String getCaption() {
