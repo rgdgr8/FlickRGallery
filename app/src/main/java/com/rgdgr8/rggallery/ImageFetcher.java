@@ -4,6 +4,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -16,10 +17,13 @@ import java.util.List;
 
 public class ImageFetcher {
     private static final String TAG = "ImageFetcher";
-    public static final String API_KEY = "c643625a18d170ffaaf02fd5a8824cee";
-    public static final String ENDPOINT_URL = "https://www.flickr.com/services/rest/";
+    private static final String API_KEY = "730b966dcdd0bcb9a58f3b4b9b0c6efe";
+    private static final String ENDPOINT_URL = "https://www.flickr.com/services/rest/";
+    private static final String GET_RECENT_METHOD = "flickr.photos.getRecent";
+    private static final String SEARCH_METHOD = "flickr.photos.search";
     public static int PAGE_NO = 1;
-    private static List<GalleryItem> mItems = new ArrayList<>();
+    private static final List<GalleryItem> mItems = new ArrayList<>();
+    private static List<GalleryItem> mRecentItems = new ArrayList<>();
 
     public static byte[] getUrlBytes(String urlString) throws IOException {
         URL url = new URL(urlString);
@@ -34,57 +38,112 @@ public class ImageFetcher {
             }
             outputStream.close();
             return outputStream.toByteArray();
-        }finally {
+        } finally {
             connection.disconnect();
         }
     }
 
-    public static String getUrlData(String urlString) throws IOException{
+    public static String getUrlData(String urlString) throws IOException {
         return new String(getUrlBytes(urlString));
     }
 
-    private static void parseItem(JSONObject jsonObject) throws Exception{
+    private static void parseItem(JSONObject jsonObject, boolean forIdCheck) throws Exception {
+        if (forIdCheck) {
+            mRecentItems.clear();
+        }
+
         JSONObject photosObject = jsonObject.getJSONObject("photos");
         JSONArray photoArray = photosObject.getJSONArray("photo");
 
         for (int i = 0; i < photoArray.length(); i++) {
             JSONObject photoData = photoArray.getJSONObject(i);
-            if (!photoData.has("url_s")) { continue; }
-
-            photoData.getString("title");
-            if(photoData.getString("title").equals("")){
-                Log.d(TAG, "parseItem: id = "+photoData.getString("id"));
+            if (!photoData.has("url_s")) {
+                continue;
             }
-            GalleryItem galleryItem = new GalleryItem(photoData.getString("title")
-            ,photoData.getString("id"),photoData.getString("url_s"));
-            mItems.add(galleryItem);
-        }
 
-        if(mItems.size()>500){
-            mItems.subList(0,400).clear();
+            String id = photoData.getString("id");
+            String title = photoData.getString("title");
+            if (title.equals("")) {
+                Log.d(TAG, "parseItem: id = " + id);
+            }
+            GalleryItem galleryItem = new GalleryItem(title
+                    , id, photoData.getString("url_s"));
+
+            if (!forIdCheck)
+                mItems.add(galleryItem);
+            else
+                mRecentItems.add(galleryItem);
         }
     }
 
-    public static void fetchItems() throws Exception{
-        Log.d(TAG, "fetchItems: before "+mItems.size());
-        String urlString = Uri.parse(ENDPOINT_URL)
-                .buildUpon()
-                .appendQueryParameter("method","flickr.photos.getRecent")
-                .appendQueryParameter("api_key", API_KEY)
-                .appendQueryParameter("format","json")
-                .appendQueryParameter("nojsoncallback", "1")
-                .appendQueryParameter("extras", "url_s")
-                .appendQueryParameter("page",String.valueOf(PAGE_NO++))
-                .build().toString();
-
+    private static void fetchItems(String urlString, boolean forIdCheck) throws Exception {
+        Log.d(TAG, "fetchItems: list size before " + mItems.size());
         String data = getUrlData(urlString);
-        Log.d(TAG, "fetchItems: "+urlString);
-        Log.i(TAG, "fetchItems: "+data);
+        Log.i(TAG, "fetchItems: " + data);
 
         JSONObject jsonObject = new JSONObject(data);
-        parseItem(jsonObject);
-        Log.d(TAG, "parseItem: after "+mItems.size());
+        parseItem(jsonObject, forIdCheck);
+        Log.d(TAG, "parseItem: list size after " + mItems.size());
     }
 
-    public static List<GalleryItem> getItemList(){return mItems;}
+    private static Uri.Builder getUriBuilder(boolean forIdCheck) {
+        Uri.Builder builder = Uri.parse(ENDPOINT_URL)
+                .buildUpon()
+                .appendQueryParameter("api_key", API_KEY)
+                .appendQueryParameter("format", "json")
+                .appendQueryParameter("nojsoncallback", "1")
+                .appendQueryParameter("extras", "url_s");
+        if (!forIdCheck)
+            builder.appendQueryParameter("page", String.valueOf(PAGE_NO++));
+        else {
+            builder.appendQueryParameter("page", "1");
+        }
+
+        return builder;
+    }
+
+    public static void getRecentImages(boolean forIdCheck) throws Exception {
+        if(!forIdCheck && PAGE_NO==1) {
+            restoreItemsList();
+            if (mItems.size() > 0) return;
+        }
+
+        Uri.Builder builder = getUriBuilder(forIdCheck);
+        builder.appendQueryParameter("method", GET_RECENT_METHOD);
+        String urlString = builder.build().toString();
+        fetchItems(urlString, forIdCheck);
+    }
+
+    public static void getSearchedImages(String query, boolean forIdCheck) throws Exception {
+        if(!forIdCheck && PAGE_NO==1) {
+            restoreItemsList();
+            if (mItems.size() > 0) return;
+        }
+
+        Uri.Builder builder = getUriBuilder(forIdCheck);
+        builder.appendQueryParameter("method", SEARCH_METHOD);
+        String urlString = builder.build().toString();
+        fetchItems(urlString, forIdCheck);
+    }
+
+    public static void tempStoreRecentItemsListAndClearItemsList() {
+        if (mRecentItems.size() <= 0)
+            mRecentItems = new ArrayList<>(mItems);
+        mItems.clear();
+    }
+
+    public static void restoreItemsList() {
+        if (mRecentItems.size()>0) {
+            mItems.clear();
+            mItems.addAll(mRecentItems);
+        }
+    }
+
+    public static List<GalleryItem> getItemList() {
+        return mItems;
+    }
+
+    public static List<GalleryItem> getRecentItemsList() {
+        return mRecentItems;
+    }
 }

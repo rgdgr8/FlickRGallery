@@ -15,11 +15,11 @@ import java.lang.ref.WeakReference;
 public class GalleryItemViewModel extends BaseObservable {
     private static final String TAG = "GModelView";
     private GalleryItem mGalleryItem;
-    private static WeakReference<Context> mCtx;
+    private static Context mCtx;
 
-    public GalleryItemViewModel(Context context){
-        if (mCtx==null) {
-            mCtx = new WeakReference<>(context);
+    public GalleryItemViewModel(Context context) {
+        if (mCtx == null) {
+            mCtx = context.getApplicationContext();
         }
     }
 
@@ -33,19 +33,19 @@ public class GalleryItemViewModel extends BaseObservable {
     }
 
     @Bindable
-    public Drawable getImage(){
-        if(mGalleryItem.getBitmap()==null){
+    public Drawable getImage() {
+        if (mGalleryItem.getBitmap() == null) {
             Log.d(TAG, "getImage: default");
-            return ContextCompat.getDrawable(mCtx.get(), R.drawable.ic_launcher_foreground);
+            return ContextCompat.getDrawable(mCtx, R.drawable.ic_launcher_foreground);
         }
         Log.d(TAG, "getImage: fetched");
-        return new BitmapDrawable(mCtx.get().getResources(),mGalleryItem.getBitmap());
+        return new BitmapDrawable(mCtx.getResources(), mGalleryItem.getBitmap());
     }
 
     @Bindable
-    public String getTitle(){
-        if(mGalleryItem!=null)
-        return mGalleryItem.getCaption();
+    public String getTitle() {
+        if (mGalleryItem != null)
+            return mGalleryItem.getCaption();
 
         return "";
     }

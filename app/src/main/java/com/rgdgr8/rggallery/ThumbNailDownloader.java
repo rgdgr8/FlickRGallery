@@ -17,18 +17,22 @@ public class ThumbNailDownloader<T> extends HandlerThread {
     private static final String TAG = "ThumbNailDownloader";
     private static final int MESSAGE_DOWNLOAD = 0;
     private static final int MESSAGE_PRE_DOWNLOAD = 1;
-    private static final int MAX_PRE_DOWNLOAD = 20;
-    public static boolean PRE_DOWNLOAD = true;
+    private static final int POST_FOR_MESSAGE_PRE_DOWNLOAD = 2;
+    private static final int MAX_PRE_DOWNLOAD = 15;
     private Handler mRequestHandler;
     private final Handler mResponseHandler;
     private final LruCache<String,Bitmap> lruCache;
-    private GalleryFragment.ImageHolder imageHolder;
-    private int lastPosition = 0;
+    private final HandlerThread preLoadThread;
+    private final MyHandler preLoadHandler;
 
     public ThumbNailDownloader(Handler handler) {
         super(TAG);
         mResponseHandler = handler;
-        lruCache = new LruCache<>((int) (Runtime.getRuntime().maxMemory() / (1024 * 5)));
+        lruCache = new LruCache<>((int) (Runtime.getRuntime().maxMemory() / (1024 * 6)));
+        preLoadThread = new HandlerThread("Cache");
+        preLoadThread.start();
+        Looper looper = preLoadThread.getLooper();
+        preLoadHandler = new MyHandler(looper);
     }
 
     @Override
@@ -37,18 +41,13 @@ public class ThumbNailDownloader<T> extends HandlerThread {
     }
 
     public void queueMessage(int position, GalleryFragment.ImageHolder holder) {
-        lastPosition = position;
-        imageHolder = holder;
+        if(position%MAX_PRE_DOWNLOAD==0)
+            queueMessagesForPreLoad(position);
         mRequestHandler.obtainMessage(MESSAGE_DOWNLOAD, holder).sendToTarget();
     }
 
-    public void queueMessage(){
-        int initialLastPosition = lastPosition;
-        while (PRE_DOWNLOAD && (lastPosition-initialLastPosition)<=MAX_PRE_DOWNLOAD) {
-            lastPosition++;
-            if (ImageFetcher.getItemList().size() <= lastPosition) return;
-            mRequestHandler.obtainMessage(MESSAGE_PRE_DOWNLOAD, ImageFetcher.getItemList().get(lastPosition)).sendToTarget();
-        }
+    private void queueMessagesForPreLoad(int position){
+        preLoadHandler.obtainMessage(POST_FOR_MESSAGE_PRE_DOWNLOAD, position,-1).sendToTarget();
     }
 
     private class MyHandler extends Handler{
@@ -57,18 +56,18 @@ public class ThumbNailDownloader<T> extends HandlerThread {
         }
         @Override
         public void handleMessage(@NonNull Message msg) {
-            Log.d(TAG, "handleMessage: "+(msg.what==MAX_PRE_DOWNLOAD)+" "+msg.toString());
             if (msg.what == MESSAGE_DOWNLOAD){
                 Log.d(TAG, "handleMessage: Download "+msg.toString());
                 GalleryFragment.ImageHolder holder = (GalleryFragment.ImageHolder) msg.obj;
                 GalleryItem item = holder.getBinding().getViewModel().getGalleryItem();
                 Bitmap bitmap = lruCache.get(item.getId());
                 if(bitmap!=null) {
+                    Log.d(TAG, "handleMessage: cache hit");
                     item.setBitmap(bitmap);
                     setImage(bitmap,holder);
                     return;
                 }
-
+                Log.d(TAG, "handleMessage: cache miss");
                 String url = item.getUrl();
                 try {
                     byte[] dataBytes = ImageFetcher.getUrlBytes(url);
@@ -78,6 +77,14 @@ public class ThumbNailDownloader<T> extends HandlerThread {
                     setImage(bitmap,holder);
                 } catch (IOException e) {
                     e.printStackTrace();
+                }
+            }
+            else if(msg.what == POST_FOR_MESSAGE_PRE_DOWNLOAD){
+                Log.d(TAG, "handleMessage: Post for Pre-load");
+                int position = msg.arg1;
+                for (int i = position+MAX_PRE_DOWNLOAD; i < position+(5*MAX_PRE_DOWNLOAD); i++) {
+                    if (ImageFetcher.getItemList().size() <= i) return;
+                    this.obtainMessage(MESSAGE_PRE_DOWNLOAD,ImageFetcher.getItemList().get(i)).sendToTarget();
                 }
             }
             else if(msg.what == MESSAGE_PRE_DOWNLOAD){
@@ -107,6 +114,12 @@ public class ThumbNailDownloader<T> extends HandlerThread {
                 holder.getBinding().getViewModel().notifyChange();
             }
         });
+    }
+
+    @Override
+    public boolean quit() {
+        preLoadThread.quit();
+        return super.quit();
     }
 
     public void clearQueue() {

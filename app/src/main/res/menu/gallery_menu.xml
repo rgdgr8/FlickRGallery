@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/search"
+        app:showAsAction="ifRoom"
+        app:actionViewClass="androidx.appcompat.widget.SearchView"
+        android:title="Search" />
+    <item
+        android:id="@+id/poll"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/notifications_active"
+        android:title="@string/notify_when_available" />
+</menu>

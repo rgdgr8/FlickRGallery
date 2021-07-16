@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">RgGallery</string>
+    <string name="notify_when_available">Notify when new photos are available"</string>
+    <string name="dont_notify_when_available">Don\'t notify when new photos are available"</string>
 </resources>
