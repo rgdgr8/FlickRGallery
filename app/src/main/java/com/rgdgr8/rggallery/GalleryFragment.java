@@ -1,5 +1,10 @@
 package com.rgdgr8.rggallery;
 
+import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,6 +40,13 @@ public class GalleryFragment extends Fragment {
     private ImageAdapter adapter;
     private ThumbNailDownloader<GalleryItem> mThumbNailDownloader;
     public static String mSearchViewQuery;
+    private final BroadcastReceiver onNotificationCreatedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // If we receive this, we're visible. So cancel the notification
+            setResultCode(Activity.RESULT_CANCELED);
+        }
+    };
 
 
     @Override
@@ -53,6 +65,13 @@ public class GalleryFragment extends Fragment {
         mThumbNailDownloader = new ThumbNailDownloader<>(handler);
         mThumbNailDownloader.start();
         mThumbNailDownloader.getLooper();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        IntentFilter filter = new IntentFilter(PollService.ACTION_CHECK_NOTIFICATION);
+        getActivity().registerReceiver(onNotificationCreatedReceiver,filter,PollService.PERMISSION_NOTIFICATION_CREATED,null);
     }
 
     @Override
@@ -137,6 +156,10 @@ public class GalleryFragment extends Fragment {
                 super.onScrollStateChanged(recyclerView, newState);
                 if (!recyclerView.canScrollVertically(1)) {
                     Log.d(TAG, "onScrollStateChanged: hit bottom");
+                    /*if (ImageFetcher.getItemList().size()>=1500){
+                        ImageFetcher.getItemList().removeAll(ImageFetcher.getItemList().subList(0,1000));
+                        setUpAdapter();
+                    }*/
                     new ImageFetchingTask().execute();
                 }
             }
@@ -242,6 +265,8 @@ public class GalleryFragment extends Fragment {
         Log.i(TAG, "onStop: search = " + mSearchViewQuery + ", SP_KEY = " + PollService.SP_SEARCH);
         PreferenceManager.getDefaultSharedPreferences(getActivity())
                 .edit().putString(PollService.SP_SEARCH, mSearchViewQuery).apply();
+
+        getActivity().unregisterReceiver(onNotificationCreatedReceiver);
     }
 
     @Override

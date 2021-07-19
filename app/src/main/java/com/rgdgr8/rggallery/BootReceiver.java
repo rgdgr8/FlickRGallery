@@ -16,7 +16,5 @@ public class BootReceiver extends BroadcastReceiver {
         Log.d(TAG, "onReceive: action = "+intent.getAction()+", isOn = "+isOn);
 
         PollService.setServiceAlarm(context,isOn);
-        Intent i = GalleryActivity.newIntent(context);
-        context.startActivity(i);
     }
 }

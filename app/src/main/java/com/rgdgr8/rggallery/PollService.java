@@ -1,5 +1,6 @@
 package com.rgdgr8.rggallery;
 
+import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.Notification;
@@ -20,14 +21,16 @@ import androidx.core.app.NotificationManagerCompat;
 import java.util.concurrent.TimeUnit;
 
 public class PollService extends IntentService {
+    public static final String PERMISSION_NOTIFICATION_CREATED = "com.rgdgr8.rggallery.NOTIFICATION_CREATED";
+    public static final String ACTION_CHECK_NOTIFICATION = "com.rgdgr8.rggallery.CHECK_NOTIFICATION";
+    public static final String INTENT_CHECK_NOTIFICATION = "notification_check";
+
     public static final String SP_FIRST_ID_KEY = "lastId";
     public static final String SP_SEARCH = "search";
     public static final String SP_SERVICE_STATE_KEY = "service_state";
     private static final String TAG = "PollService";
     private static final long POLL_INTERVAL_MS = TimeUnit.MINUTES.toMillis(1);
     private static final int PI_REQUEST_CODE = 0;
-    private static final int NOTIFY_ID = 1;
-    private static final String NOTIFICATION_CHANNEL_ID = "NEW_PHOTOS_FOUND";
 
     private static Intent pollServiceIntent(Context context) {
         return new Intent(context, PollService.class);
@@ -102,7 +105,7 @@ public class PollService extends IntentService {
         } else {
             Log.i(TAG, "New Result");
 
-            Notification notification = new Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
+            Notification notification = new Notification.Builder(this, NotificationReceiver.NOTIFICATION_CHANNEL_ID)
                     .setContentTitle("New " + photoType + " Photos available in " + getResources().getString(R.string.app_name))
                     .setSmallIcon(android.R.mipmap.sym_def_app_icon)
                     .setContentIntent(PendingIntent.getActivity(this, PI_REQUEST_CODE
@@ -110,20 +113,16 @@ public class PollService extends IntentService {
                     .setAutoCancel(true)
                     .build();
 
-            NotificationManagerCompat managerCompat = NotificationManagerCompat.from(this);
-            createNotificationChannel(managerCompat);
-            managerCompat.notify(NOTIFY_ID, notification);
+            showNotification(notification);
         }
 
         sharedPreferences.edit().putString(SP_FIRST_ID_KEY, newFirstId).apply();
     }
 
-    private static void createNotificationChannel(NotificationManagerCompat mNotificationManager) {
-        NotificationChannel channel = new NotificationChannel(
-                NOTIFICATION_CHANNEL_ID,
-                "New Photos Notification Channel",
-                NotificationManager.IMPORTANCE_HIGH);
-        mNotificationManager.createNotificationChannel(channel);
+    private void showNotification(Notification notification){
+        Intent i = new Intent(ACTION_CHECK_NOTIFICATION);
+        i.putExtra(INTENT_CHECK_NOTIFICATION,notification);
+        sendOrderedBroadcast(i,PERMISSION_NOTIFICATION_CREATED,null,null, Activity.RESULT_OK,null,null);
     }
 
     private boolean isNetworkAvailableAndConnected() {
