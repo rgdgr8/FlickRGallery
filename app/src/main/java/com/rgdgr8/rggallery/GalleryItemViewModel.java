@@ -35,10 +35,10 @@ public class GalleryItemViewModel extends BaseObservable {
     @Bindable
     public Drawable getImage() {
         if (mGalleryItem.getBitmap() == null) {
-            Log.d(TAG, "getImage: default");
+            //Log.d(TAG, "getImage: default");
             return ContextCompat.getDrawable(mCtx, R.drawable.ic_launcher_foreground);
         }
-        Log.d(TAG, "getImage: fetched");
+        //Log.d(TAG, "getImage: fetched");
         return new BitmapDrawable(mCtx.getResources(), mGalleryItem.getBitmap());
     }
 

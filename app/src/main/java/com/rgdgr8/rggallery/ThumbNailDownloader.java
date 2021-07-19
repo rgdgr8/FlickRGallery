@@ -57,17 +57,17 @@ public class ThumbNailDownloader<T> extends HandlerThread {
         @Override
         public void handleMessage(@NonNull Message msg) {
             if (msg.what == MESSAGE_DOWNLOAD){
-                Log.d(TAG, "handleMessage: Download "+msg.toString());
+                //Log.d(TAG, "handleMessage: Download "+msg.toString());
                 GalleryFragment.ImageHolder holder = (GalleryFragment.ImageHolder) msg.obj;
                 GalleryItem item = holder.getBinding().getViewModel().getGalleryItem();
                 Bitmap bitmap = lruCache.get(item.getId());
                 if(bitmap!=null) {
-                    Log.d(TAG, "handleMessage: cache hit");
+                    //Log.d(TAG, "handleMessage: cache hit");
                     item.setBitmap(bitmap);
                     setImage(bitmap,holder);
                     return;
                 }
-                Log.d(TAG, "handleMessage: cache miss");
+                //Log.d(TAG, "handleMessage: cache miss");
                 String url = item.getUrl();
                 try {
                     byte[] dataBytes = ImageFetcher.getUrlBytes(url);
@@ -80,7 +80,7 @@ public class ThumbNailDownloader<T> extends HandlerThread {
                 }
             }
             else if(msg.what == POST_FOR_MESSAGE_PRE_DOWNLOAD){
-                Log.d(TAG, "handleMessage: Post for Pre-load");
+                //Log.d(TAG, "handleMessage: Post for Pre-load");
                 int position = msg.arg1;
                 for (int i = position+MAX_PRE_DOWNLOAD; i < position+(5*MAX_PRE_DOWNLOAD); i++) {
                     if (ImageFetcher.getItemList().size() <= i) return;
@@ -88,7 +88,7 @@ public class ThumbNailDownloader<T> extends HandlerThread {
                 }
             }
             else if(msg.what == MESSAGE_PRE_DOWNLOAD){
-                Log.d(TAG, "handleMessage: Pre-load "+msg.toString());
+                //Log.d(TAG, "handleMessage: Pre-load "+msg.toString());
                 GalleryItem item = (GalleryItem)msg.obj;
                 Bitmap bitmap = lruCache.get(item.getId());
                 if(bitmap!=null) {

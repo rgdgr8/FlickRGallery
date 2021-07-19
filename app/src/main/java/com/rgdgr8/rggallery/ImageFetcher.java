@@ -23,7 +23,7 @@ public class ImageFetcher {
     private static final String SEARCH_METHOD = "flickr.photos.search";
     public static int PAGE_NO = 1;
     private static final List<GalleryItem> mItems = new ArrayList<>();
-    private static List<GalleryItem> mRecentItems = new ArrayList<>();
+    private static final List<GalleryItem> mCheckItems = new ArrayList<>();
 
     public static byte[] getUrlBytes(String urlString) throws IOException {
         URL url = new URL(urlString);
@@ -49,7 +49,7 @@ public class ImageFetcher {
 
     private static void parseItem(JSONObject jsonObject, boolean forIdCheck) throws Exception {
         if (forIdCheck) {
-            mRecentItems.clear();
+            mCheckItems.clear();
         }
 
         JSONObject photosObject = jsonObject.getJSONObject("photos");
@@ -63,17 +63,22 @@ public class ImageFetcher {
 
             String id = photoData.getString("id");
             String title = photoData.getString("title");
-            if (title.equals("")) {
+            /*if (title.equals("")) {
                 Log.d(TAG, "parseItem: id = " + id);
-            }
+            }*/
             GalleryItem galleryItem = new GalleryItem(title
                     , id, photoData.getString("url_s"));
 
             if (!forIdCheck)
                 mItems.add(galleryItem);
-            else
-                mRecentItems.add(galleryItem);
+            else {
+                mCheckItems.add(galleryItem);
+            }
         }
+    }
+
+    private static void addItems(JSONObject jsonObject, boolean forIdCheck) throws Exception {
+        parseItem(jsonObject,forIdCheck);
     }
 
     private static void fetchItems(String urlString, boolean forIdCheck) throws Exception {
@@ -82,7 +87,7 @@ public class ImageFetcher {
         Log.i(TAG, "fetchItems: " + data);
 
         JSONObject jsonObject = new JSONObject(data);
-        parseItem(jsonObject, forIdCheck);
+        addItems(jsonObject, forIdCheck);
         Log.d(TAG, "parseItem: list size after " + mItems.size());
     }
 
@@ -103,10 +108,7 @@ public class ImageFetcher {
     }
 
     public static void getRecentImages(boolean forIdCheck) throws Exception {
-        if(!forIdCheck && PAGE_NO==1) {
-            restoreItemsList();
-            if (mItems.size() > 0) return;
-        }
+        Log.d(TAG, "getRecentImages: forIdCheck = " + forIdCheck);
 
         Uri.Builder builder = getUriBuilder(forIdCheck);
         builder.appendQueryParameter("method", GET_RECENT_METHOD);
@@ -115,35 +117,20 @@ public class ImageFetcher {
     }
 
     public static void getSearchedImages(String query, boolean forIdCheck) throws Exception {
-        if(!forIdCheck && PAGE_NO==1) {
-            restoreItemsList();
-            if (mItems.size() > 0) return;
-        }
+        Log.d(TAG, "getSearchedImages: " + query + ", forIdCheck = " + forIdCheck);
 
         Uri.Builder builder = getUriBuilder(forIdCheck);
-        builder.appendQueryParameter("method", SEARCH_METHOD);
+        builder.appendQueryParameter("method", SEARCH_METHOD)
+                .appendQueryParameter("text", query);
         String urlString = builder.build().toString();
         fetchItems(urlString, forIdCheck);
-    }
-
-    public static void tempStoreRecentItemsListAndClearItemsList() {
-        if (mRecentItems.size() <= 0)
-            mRecentItems = new ArrayList<>(mItems);
-        mItems.clear();
-    }
-
-    public static void restoreItemsList() {
-        if (mRecentItems.size()>0) {
-            mItems.clear();
-            mItems.addAll(mRecentItems);
-        }
     }
 
     public static List<GalleryItem> getItemList() {
         return mItems;
     }
 
-    public static List<GalleryItem> getRecentItemsList() {
-        return mRecentItems;
+    public static List<GalleryItem> getCheckItemsList() {
+        return mCheckItems;
     }
 }
