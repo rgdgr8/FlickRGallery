@@ -12,9 +12,10 @@
     <ImageView
         android:id="@+id/gallery_image"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="240dp"
+        android:layout_margin="4dp"
         android:contentDescription="@{viewModel.title}"
-        android:scaleType="centerCrop"
+        android:scaleType="fitXY"
         android:src="@{viewModel.getImage()}">
     </ImageView>
 

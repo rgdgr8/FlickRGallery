@@ -25,7 +25,7 @@ public class PollService extends IntentService {
     public static final String ACTION_CHECK_NOTIFICATION = "com.rgdgr8.rggallery.CHECK_NOTIFICATION";
     public static final String INTENT_CHECK_NOTIFICATION = "notification_check";
 
-    public static final String SP_FIRST_ID_KEY = "lastId";
+    private static final String SP_FIRST_ID_KEY = "lastId";
     public static final String SP_SEARCH = "search";
     public static final String SP_SERVICE_STATE_KEY = "service_state";
     private static final String TAG = "PollService";
@@ -73,10 +73,10 @@ public class PollService extends IntentService {
         }
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        String firstId = sharedPreferences.getString(SP_FIRST_ID_KEY, "");
+        String firstId = sharedPreferences.getString(SP_FIRST_ID_KEY, null);
         String photoType = GalleryFragment.mSearchViewQuery;
-        if(photoType==null){
-            photoType = sharedPreferences.getString(SP_SEARCH,null);
+        if (photoType == null) {
+            photoType = sharedPreferences.getString(SP_SEARCH, null);
         }
         Log.d(TAG, "onHandleIntent: photoType = " + photoType + ", SP_SEARCH_KEY = " + SP_SEARCH);
 
@@ -84,9 +84,8 @@ public class PollService extends IntentService {
             if (photoType == null) {
                 photoType = "Feed";
                 ImageFetcher.getRecentImages(true);
-            }
-            else {
-                sharedPreferences.edit().putString(SP_SEARCH,photoType).apply();
+            } else {
+                sharedPreferences.edit().putString(SP_SEARCH, photoType).apply();
                 ImageFetcher.getSearchedImages(photoType, true);
             }
         } catch (Exception e) {
@@ -102,7 +101,7 @@ public class PollService extends IntentService {
 
         if (newFirstId.equals(firstId)) {
             Log.i(TAG, "Old Result");
-        } else {
+        } else if (firstId != null) {
             Log.i(TAG, "New Result");
 
             Notification notification = new Notification.Builder(this, NotificationReceiver.NOTIFICATION_CHANNEL_ID)
@@ -119,10 +118,10 @@ public class PollService extends IntentService {
         sharedPreferences.edit().putString(SP_FIRST_ID_KEY, newFirstId).apply();
     }
 
-    private void showNotification(Notification notification){
+    private void showNotification(Notification notification) {
         Intent i = new Intent(ACTION_CHECK_NOTIFICATION);
-        i.putExtra(INTENT_CHECK_NOTIFICATION,notification);
-        sendOrderedBroadcast(i,PERMISSION_NOTIFICATION_CREATED,null,null, Activity.RESULT_OK,null,null);
+        i.putExtra(INTENT_CHECK_NOTIFICATION, notification);
+        sendOrderedBroadcast(i, PERMISSION_NOTIFICATION_CREATED, null, null, Activity.RESULT_OK, null, null);
     }
 
     private boolean isNetworkAvailableAndConnected() {

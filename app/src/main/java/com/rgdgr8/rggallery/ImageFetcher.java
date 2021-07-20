@@ -67,7 +67,7 @@ public class ImageFetcher {
                 Log.d(TAG, "parseItem: id = " + id);
             }*/
             GalleryItem galleryItem = new GalleryItem(title
-                    , id, photoData.getString("url_s"));
+                    , id, photoData.getString("url_s"), photoData.getString("owner"));
 
             if (!forIdCheck)
                 mItems.add(galleryItem);
@@ -78,7 +78,7 @@ public class ImageFetcher {
     }
 
     private static void addItems(JSONObject jsonObject, boolean forIdCheck) throws Exception {
-        parseItem(jsonObject,forIdCheck);
+        parseItem(jsonObject, forIdCheck);
     }
 
     private static void fetchItems(String urlString, boolean forIdCheck) throws Exception {
