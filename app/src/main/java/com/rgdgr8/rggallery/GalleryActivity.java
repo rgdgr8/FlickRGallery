@@ -135,7 +135,7 @@ public class GalleryActivity extends AppCompatActivity {
     public void onResume() {
         super.onResume();
         IntentFilter filter = new IntentFilter(PollService.ACTION_CHECK_NOTIFICATION);
-        registerReceiver(onNotificationCreatedReceiver, filter, PollService.PERMISSION_NOTIFICATION_CREATED, null);
+        registerReceiver(onNotificationCreatedReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
     }
 
     @Override

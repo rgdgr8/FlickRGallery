@@ -38,7 +38,7 @@ public class PollService extends IntentService {
 
     public static boolean isAlarmOn(Context context) {
         Intent i = pollServiceIntent(context);
-        PendingIntent pi = PendingIntent.getService(context, PI_REQUEST_CODE, i, PendingIntent.FLAG_NO_CREATE);
+        PendingIntent pi = PendingIntent.getService(context, PI_REQUEST_CODE, i, PendingIntent.FLAG_IMMUTABLE);
         return pi != null;
     }
 
@@ -51,7 +51,7 @@ public class PollService extends IntentService {
         if (isAlarmOn(context) == isOn) return;
 
         Intent i = pollServiceIntent(context);
-        PendingIntent pi = PendingIntent.getService(context, PI_REQUEST_CODE, i, 0);
+        PendingIntent pi = PendingIntent.getService(context, PI_REQUEST_CODE, i, PendingIntent.FLAG_IMMUTABLE);
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (isOn) {
             alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
